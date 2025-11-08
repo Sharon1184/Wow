@@ -69,11 +69,17 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
             transition: all 0.3s;
             font-weight: bold;
+            position: relative;
         }
 
         button:hover {
             transform: translateY(-3px);
             box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .moving-button {
+            position: absolute;
+            transition: all 0.15s;
         }
 
         .emoji-rain {
@@ -108,44 +114,24 @@
             background: #f5576c;
         }
 
-        .word-box.correct {
-            animation: correct 0.5s;
-        }
-
-        .word-box.wrong {
-            animation: wrong 0.5s;
-        }
-
-        @keyframes correct {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.2) rotate(5deg); background: #4CAF50; }
-        }
-
-        @keyframes wrong {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
-        }
-
-        .color-box {
-            width: 150px;
-            height: 150px;
-            margin: 20px;
-            display: inline-block;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-
-        .color-box:hover {
-            transform: scale(1.1);
-        }
-
-        .math-input {
+        .captcha-box {
+            border: 2px solid #ccc;
+            padding: 10px;
+            margin: 10px auto;
+            width: 300px;
+            background: #f5f5f5;
+            font-family: monospace;
             font-size: 2em;
+            letter-spacing: 5px;
+            text-decoration: line-through;
+            transform: rotate(-5deg);
+            color: #666;
+        }
+
+        .captcha-input {
+            font-size: 1.5em;
             padding: 15px;
-            width: 150px;
+            width: 300px;
             text-align: center;
             border: 3px solid #764ba2;
             border-radius: 15px;
@@ -186,38 +172,92 @@
             transition: width 0.5s;
         }
 
-        .frustration-meter {
-            font-size: 1.5em;
-            margin: 20px 0;
+        .checkbox-label {
+            display: block;
+            text-align: left;
+            margin: 15px auto;
+            max-width: 400px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 10px;
+            transition: background 0.3s;
+        }
+
+        .checkbox-label:hover {
+            background: #f0f0f0;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .slider {
+            width: 80%;
+            margin: 30px auto;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 15px;
+            cursor: pointer;
+        }
+
+        .annoying-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: none;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 999;
+            display: none;
         }
     </style>
 </head>
 <body>
+    <div class="overlay" id="overlay"></div>
+    <div class="annoying-popup" id="popup">
+        <h2>⚠️ Wait! Are you sure?</h2>
+        <p style="margin: 20px 0;">Think carefully before proceeding...</p>
+        <button onclick="closePopup()">Yes, I'm Sure</button>
+        <button onclick="closePopup()">No, Go Back</button>
+    </div>
+
     <div class="container" id="gameContainer">
-        <h1>💖 Mystery Love Quest 💖</h1>
-        <div class="level-indicator" id="levelIndicator">Challenge 1 of 5</div>
+        <h1>💖 Mystery Challenge 💖</h1>
+        <div class="level-indicator" id="levelIndicator">Challenge 1 of 7</div>
         <div class="progress-bar">
             <div class="progress-fill" id="progressFill" style="width: 0%"></div>
         </div>
-        <div class="instruction" id="instruction">Welcome! Are you ready for some challenges? 😈</div>
+        <div class="instruction" id="instruction">Are you ready for the most annoying challenge ever? 😈</div>
         <div class="game-area" id="gameArea">
-            <button onclick="startGame()">Let's Go! 💝</button>
+            <button onclick="startGame()">Start Challenge 💝</button>
         </div>
     </div>
 
     <script>
         let currentLevel = 0;
-        let gameState = {
-            level: 0,
-            score: 0,
-            attempts: 0
-        };
-
-        // Game variables
-        let correctSequence = [];
-        let userSequence = [];
-        let correctColor = '';
-        let mathAnswer = 0;
+        let gameState = { level: 0, attempts: 0 };
+        let moveInterval;
+        let clickCount = 0;
+        let sliderMoves = 0;
+        let requiredSliderMoves = 50;
 
         function startGame() {
             currentLevel = 1;
@@ -226,182 +266,291 @@
         }
 
         function updateProgress() {
-            document.getElementById('levelIndicator').textContent = `Challenge ${currentLevel} of 5`;
-            document.getElementById('progressFill').style.width = (currentLevel / 5 * 100) + '%';
+            document.getElementById('levelIndicator').textContent = `Challenge ${currentLevel} of 7`;
+            document.getElementById('progressFill').style.width = (currentLevel / 7 * 100) + '%';
             gameState.level = currentLevel;
-            gameState.attempts++;
         }
 
-        // Level 1: Memory Game
+        // Level 1: The Impossible Button Chase
         function level1() {
             document.getElementById('instruction').innerHTML = 
-                '🧠 <strong>Memory Challenge!</strong><br>Watch the sequence carefully and repeat it!';
+                '😈 <strong>Catch Me If You Can!</strong><br>Click the button... I DARE you! (You need to click it 15 times)';
             
-            correctSequence = ['🌟', '❤️', '🌈'];
+            clickCount = 0;
+            let html = '<div style="position: relative; height: 400px;">';
+            html += '<button class="moving-button" id="runawayBtn" style="left: 50%; top: 50%;">Click Me! (0/15)</button>';
+            html += '</div>';
             
-            let html = '<div style="font-size: 3em; margin: 40px 0;">🌟 ❤️ 🌈</div>';
-            html += '<p style="font-size: 1.1em; color: #666;">Memorizing... 3 seconds!</p>';
             document.getElementById('gameArea').innerHTML = html;
-
-            setTimeout(() => {
-                document.getElementById('gameArea').innerHTML = 
-                    '<div><p style="margin-bottom: 20px;">Now click them in the correct order!</p>' +
-                    '<div class="word-box" onclick="checkSequence(\'🌈\')">🌈</div>' +
-                    '<div class="word-box" onclick="checkSequence(\'🌟\')">🌟</div>' +
-                    '<div class="word-box" onclick="checkSequence(\'❤️\')">❤️</div></div>';
-                userSequence = [];
-            }, 3000);
-        }
-
-        function checkSequence(emoji) {
-            userSequence.push(emoji);
-            createEmojiRain(emoji);
             
-            if (userSequence.length === correctSequence.length) {
-                if (JSON.stringify(userSequence) === JSON.stringify(correctSequence)) {
+            const btn = document.getElementById('runawayBtn');
+            
+            btn.addEventListener('mouseenter', moveButton);
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                clickCount++;
+                btn.textContent = `Got Me! (${clickCount}/15)`;
+                if (clickCount >= 15) {
+                    clearInterval(moveInterval);
                     setTimeout(() => {
                         currentLevel++;
                         updateProgress();
                         level2();
                     }, 500);
                 } else {
-                    document.getElementById('instruction').innerHTML = 
-                        '❌ Oops! Try again! The sequence was 🌟 ❤️ 🌈';
-                    setTimeout(level1, 2000);
+                    moveButton();
                 }
-            }
-        }
-
-        // Level 2: Color Confusion
-        function level2() {
-            document.getElementById('instruction').innerHTML = 
-                '🎨 <strong>Color Confusion!</strong><br>Click the color that matches the WORD, not the color of the text! 😵';
-            
-            const colors = [
-                { word: 'RED', textColor: 'blue', bgColor: '#ff4444' },
-                { word: 'BLUE', textColor: 'green', bgColor: '#4444ff' },
-                { word: 'GREEN', textColor: 'red', bgColor: '#44ff44' }
-            ];
-            
-            correctColor = '#44ff44'; // GREEN
-            
-            let html = '<div style="font-size: 2em; margin: 20px 0;">';
-            html += '<span style="color: green;">RED</span> ';
-            html += '<span style="color: red;">BLUE</span> ';
-            html += '<span style="color: blue;">GREEN</span></div>';
-            html += '<p style="margin: 20px 0;">Which color is the word "GREEN"?</p>';
-            
-            colors.forEach(color => {
-                html += `<div class="color-box" style="background: ${color.bgColor};" onclick="checkColor('${color.bgColor}')"></div>`;
             });
             
+            moveInterval = setInterval(moveButton, 2000);
+        }
+
+        function moveButton() {
+            const btn = document.getElementById('runawayBtn');
+            if (!btn) return;
+            
+            const container = btn.parentElement;
+            const maxX = container.offsetWidth - btn.offsetWidth;
+            const maxY = container.offsetHeight - btn.offsetHeight;
+            
+            const newX = Math.random() * maxX;
+            const newY = Math.random() * maxY;
+            
+            btn.style.left = newX + 'px';
+            btn.style.top = newY + 'px';
+        }
+
+        // Level 2: Fake Loading Screen
+        function level2() {
+            document.getElementById('instruction').innerHTML = 
+                '⏳ <strong>Loading...</strong><br>Please wait while we prepare your next challenge...';
+            
+            let progress = 0;
+            let html = '<div style="margin: 50px 0;">';
+            html += '<div class="progress-bar" style="width: 80%; margin: 0 auto;">';
+            html += '<div class="progress-fill" id="fakeProgress" style="width: 0%"></div>';
+            html += '</div>';
+            html += '<p style="margin-top: 20px; font-size: 1.5em;" id="loadingText">0%</p>';
+            html += '</div>';
+            
             document.getElementById('gameArea').innerHTML = html;
+            
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 3;
+                
+                // Get stuck at annoying percentages
+                if (progress > 33 && progress < 34) {
+                    progress = 33;
+                    setTimeout(() => progress = 34, 3000);
+                } else if (progress > 66 && progress < 67) {
+                    progress = 66;
+                    setTimeout(() => progress = 67, 3000);
+                } else if (progress > 99 && progress < 100) {
+                    progress = 99;
+                    setTimeout(() => progress = 100, 4000);
+                }
+                
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(progressInterval);
+                    setTimeout(() => {
+                        currentLevel++;
+                        updateProgress();
+                        level3();
+                    }, 1000);
+                }
+                
+                document.getElementById('fakeProgress').style.width = progress + '%';
+                document.getElementById('loadingText').textContent = Math.floor(progress) + '%';
+            }, 200);
         }
 
-        function checkColor(color) {
-            if (color === correctColor) {
-                createEmojiRain('✅');
-                setTimeout(() => {
-                    currentLevel++;
-                    updateProgress();
-                    level3();
-                }, 500);
-            } else {
-                document.getElementById('instruction').innerHTML = 
-                    '❌ Nope! Read carefully - the WORD says GREEN! 😏';
-                setTimeout(level2, 2000);
-            }
-        }
-
-        // Level 3: Annoying Math
+        // Level 3: Impossible CAPTCHA
         function level3() {
-            const num1 = Math.floor(Math.random() * 10) + 5;
-            const num2 = Math.floor(Math.random() * 10) + 5;
-            const num3 = Math.floor(Math.random() * 5) + 2;
-            mathAnswer = num1 + num2 - num3;
+            const captchas = ['8B9ZxQ2', 'Kp4L7mN', 'R9tY3Wq', '7HvB2nX'];
+            const selectedCaptcha = captchas[Math.floor(Math.random() * captchas.length)];
             
             document.getElementById('instruction').innerHTML = 
-                '🧮 <strong>Quick Math!</strong><br>Calculate: ' + num1 + ' + ' + num2 + ' - ' + num3 + ' = ?';
+                '🤖 <strong>Prove You\'re Human!</strong><br>Type the characters you see below (case-sensitive!)';
             
-            let html = '<input type="number" class="math-input" id="mathInput" placeholder="?">';
-            html += '<br><button onclick="checkMath()">Submit Answer 📝</button>';
-            html += '<p style="margin-top: 20px; color: #666;">Take your time... or not! 😅</p>';
+            let html = '<div class="captcha-box">' + selectedCaptcha + '</div>';
+            html += '<input type="text" class="captcha-input" id="captchaInput" placeholder="Type here...">';
+            html += '<br><button onclick="checkCaptcha(\'' + selectedCaptcha + '\')">Verify 🔍</button>';
+            html += '<p style="margin-top: 15px; color: #999; font-size: 0.9em;">Hint: It\'s really hard to read! 😏</p>';
             
             document.getElementById('gameArea').innerHTML = html;
         }
 
-        function checkMath() {
-            const userAnswer = parseInt(document.getElementById('mathInput').value);
-            if (userAnswer === mathAnswer) {
-                createEmojiRain('🎉');
-                setTimeout(() => {
-                    currentLevel++;
-                    updateProgress();
-                    level4();
-                }, 500);
+        function checkCaptcha(correct) {
+            const userInput = document.getElementById('captchaInput').value;
+            if (userInput === correct) {
+                showAnnoyingPopup();
             } else {
                 document.getElementById('instruction').innerHTML = 
-                    '❌ Wrong! Try again! (Hint: The answer is ' + mathAnswer + ')';
+                    '❌ Wrong! Try again... or maybe refresh? 🤔';
                 setTimeout(level3, 2000);
             }
         }
 
-        // Level 4: Don't Click!
+        function showAnnoyingPopup() {
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('popup').style.display = 'block';
+        }
+
+        function closePopup() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('popup').style.display = 'none';
+            currentLevel++;
+            updateProgress();
+            level4();
+        }
+
+        // Level 4: Terms & Conditions
         function level4() {
-            let countdown = 8;
             document.getElementById('instruction').innerHTML = 
-                '⏰ <strong>Ultimate Patience Test!</strong><br>DO NOT click anything for 8 seconds! Just wait! 😤';
+                '📜 <strong>Accept Terms & Conditions</strong><br>Read and accept ALL terms (yes, you must check every box!)';
             
-            let html = '<div style="font-size: 4em; margin: 40px 0;" id="countdown">8</div>';
-            html += '<button onclick="failLevel4()" style="background: #ff4444;">Click Me! I Dare You! 😈</button>';
+            let html = '<div style="max-height: 300px; overflow-y: scroll; border: 2px solid #ccc; padding: 20px; margin: 20px 0; text-align: left;">';
+            html += '<p>By continuing, you agree to:</p>';
+            
+            for (let i = 1; i <= 12; i++) {
+                html += `<label class="checkbox-label">
+                    <input type="checkbox" class="terms-check" onchange="checkAllTerms()">
+                    Term ${i}: Some very important legal stuff that nobody reads but everyone agrees to anyway.
+                </label>`;
+            }
+            
+            html += '</div>';
+            html += '<button id="acceptBtn" disabled style="opacity: 0.5; cursor: not-allowed;">Accept All Terms</button>';
+            
+            document.getElementById('gameArea').innerHTML = html;
+        }
+
+        function checkAllTerms() {
+            const checkboxes = document.querySelectorAll('.terms-check');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            const btn = document.getElementById('acceptBtn');
+            
+            if (allChecked) {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+                btn.onclick = () => {
+                    currentLevel++;
+                    updateProgress();
+                    level5();
+                };
+            }
+        }
+
+        // Level 5: The Slider from Hell
+        function level5() {
+            sliderMoves = 0;
+            document.getElementById('instruction').innerHTML = 
+                '🎚️ <strong>Set Slider to EXACTLY 50%</strong><br>But it has a mind of its own! (Move it back and forth 50 times to "calibrate" it first)';
+            
+            let html = '<div class="slider">';
+            html += '<input type="range" id="evilSlider" min="0" max="100" value="0">';
+            html += '<p style="font-size: 1.5em; margin-top: 20px;">Value: <span id="sliderValue">0</span>%</p>';
+            html += '<p style="color: #666; margin-top: 10px;">Calibration: <span id="sliderMoves">0</span>/50 moves</p>';
+            html += '</div>';
+            html += '<button id="confirmSlider" onclick="checkSlider()" disabled style="opacity: 0.5;">Confirm Value</button>';
+            
+            document.getElementById('gameArea').innerHTML = html;
+            
+            const slider = document.getElementById('evilSlider');
+            let lastValue = 0;
+            
+            slider.addEventListener('input', function() {
+                sliderMoves++;
+                document.getElementById('sliderValue').textContent = this.value;
+                document.getElementById('sliderMoves').textContent = sliderMoves;
+                
+                // Make it jump around randomly
+                if (Math.random() > 0.7) {
+                    this.value = Math.floor(Math.random() * 100);
+                    document.getElementById('sliderValue').textContent = this.value;
+                }
+                
+                if (sliderMoves >= requiredSliderMoves) {
+                    document.getElementById('confirmSlider').disabled = false;
+                    document.getElementById('confirmSlider').style.opacity = '1';
+                }
+                
+                lastValue = this.value;
+            });
+        }
+
+        function checkSlider() {
+            const value = document.getElementById('evilSlider').value;
+            if (value == 50) {
+                currentLevel++;
+                updateProgress();
+                level6();
+            } else {
+                document.getElementById('instruction').innerHTML = 
+                    '❌ Not exactly 50%! Try again... 😈';
+                setTimeout(level5, 2000);
+            }
+        }
+
+        // Level 6: Extreme Waiting Game
+        function level6() {
+            let countdown = 25;
+            document.getElementById('instruction').innerHTML = 
+                '⏰ <strong>WAIT 25 SECONDS!</strong><br>Do NOTHING! Don\'t click, don\'t touch! Just... wait... 🙃';
+            
+            let html = '<div style="font-size: 5em; margin: 50px 0;" id="bigCountdown">25</div>';
+            html += '<p style="color: #999;">This is taking forever, right? 😴</p>';
+            html += '<button onclick="resetWait()" style="background: #ff4444; margin-top: 30px;">Skip? (This will restart! 😈)</button>';
             
             document.getElementById('gameArea').innerHTML = html;
             
             const timer = setInterval(() => {
                 countdown--;
-                const countdownEl = document.getElementById('countdown');
-                if (countdownEl) {
-                    countdownEl.textContent = countdown;
-                }
-                
-                if (countdown === 0) {
-                    clearInterval(timer);
-                    currentLevel++;
-                    updateProgress();
-                    level5();
+                const el = document.getElementById('bigCountdown');
+                if (el) {
+                    el.textContent = countdown;
+                    
+                    if (countdown <= 0) {
+                        clearInterval(timer);
+                        currentLevel++;
+                        updateProgress();
+                        level7();
+                    }
                 }
             }, 1000);
         }
 
-        function failLevel4() {
+        function resetWait() {
             document.getElementById('instruction').innerHTML = 
-                '❌ I said DON\'T CLICK! 😂 Starting over...';
-            setTimeout(level4, 2000);
+                '😂 I told you not to click! Starting over...';
+            setTimeout(level6, 2000);
         }
 
-        // Level 5: Final Riddle
-        function level5() {
+        // Level 7: Final Impossible Quiz
+        function level7() {
             document.getElementById('instruction').innerHTML = 
-                '🤔 <strong>Final Riddle!</strong><br>What is always in front of you but can\'t be seen?';
+                '🧠 <strong>Final Question!</strong><br>What is 2+2?';
             
             let html = '<div>';
-            html += '<div class="word-box" onclick="checkRiddle(\'past\')">The Past</div>';
-            html += '<div class="word-box" onclick="checkRiddle(\'future\')">The Future</div>';
-            html += '<div class="word-box" onclick="checkRiddle(\'air\')">Air</div>';
+            html += '<div class="word-box" onclick="wrongAnswer()">4</div>';
+            html += '<div class="word-box" onclick="wrongAnswer()">22</div>';
+            html += '<div class="word-box" onclick="checkFinal()">Fish 🐟</div>';
             html += '</div>';
-            html += '<p style="margin-top: 20px; color: #666;">Think carefully... 🤔</p>';
+            html += '<p style="margin-top: 20px; color: #666; font-size: 0.9em;">Think outside the box... 🤔</p>';
             
             document.getElementById('gameArea').innerHTML = html;
         }
 
-        function checkRiddle(answer) {
-            if (answer === 'future') {
-                createEmojiRain('🎊');
-                setTimeout(showFinalMessage, 500);
-            } else {
-                document.getElementById('instruction').innerHTML = 
-                    '❌ Not quite! Think about it... what\'s ahead of you? 😊';
-            }
+        function wrongAnswer() {
+            document.getElementById('instruction').innerHTML = 
+                '❌ Too logical! Think WEIRD! 🤪';
+        }
+
+        function checkFinal() {
+            createEmojiRain('🎊');
+            setTimeout(showFinalMessage, 500);
         }
 
         function showFinalMessage() {
@@ -410,21 +559,21 @@
                     <div class="hearts">💕 💖 💕</div>
                     <h1 style="font-size: 3em; margin: 30px 0;">I Love You Pinky!</h1>
                     <p style="font-size: 1.5em; color: #764ba2; margin: 20px 0;">
-                        You made it through all my silly challenges! 🎉
+                        You survived the most annoying challenge ever! 🎉
                     </p>
                     <p style="font-size: 1.2em; color: #666; margin: 20px 0;">
-                        Your patience is amazing, and I love you so much! 💗
+                        I'm sorry for making you so angry! 😅<br>
+                        But your patience (and rage) is adorable! 💗
                     </p>
-                    <p style="font-size: 1em; color: #999; margin-top: 40px;">
-                        You completed ${gameState.attempts} attempts with lots of love! ❤️
+                    <p style="font-size: 1.1em; color: #999; margin-top: 40px;">
+                        You are the best, and I love you SO much! ❤️
                     </p>
                     <div style="font-size: 4em; margin-top: 30px;">🌹💝🌹</div>
                 </div>
             `;
             
-            // Create celebration
-            for (let i = 0; i < 20; i++) {
-                setTimeout(() => createEmojiRain(['❤️', '💕', '💖', '🌹', '✨'][Math.floor(Math.random() * 5)]), i * 200);
+            for (let i = 0; i < 30; i++) {
+                setTimeout(() => createEmojiRain(['❤️', '💕', '💖', '🌹', '✨'][Math.floor(Math.random() * 5)]), i * 150);
             }
         }
 
@@ -439,4 +588,4 @@
         }
     </script>
 </body>
-  </html>
+</html>
