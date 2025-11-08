@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mystery Challenge 💖</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .container {
+            background: white;
+            border-radius: 30px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        h1 {
+            color: #764ba2;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .level-indicator {
+            font-size: 1.2em;
+            color: #667eea;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        .instruction {
+            font-size: 1.3em;
+            margin: 30px 0;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .game-area {
+            min-height: 300px;
+            position: relative;
+            margin: 30px 0;
+        }
+
+        button {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .emoji-rain {
+            position: fixed;
+            font-size: 2em;
+            pointer-events: none;
+            animation: fall 3s linear;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .word-box {
+            display: inline-block;
+            background: #f093fb;
+            color: white;
+            padding: 20px 30px;
+            margin: 10px;
+            border-radius: 15px;
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .word-box:hover {
+            transform: scale(1.1);
+            background: #f5576c;
+        }
+
+        .word-box.correct {
+            animation: correct 0.5s;
+        }
+
+        .word-box.wrong {
+            animation: wrong 0.5s;
+        }
+
+        @keyframes correct {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2) rotate(5deg); background: #4CAF50; }
+        }
+
+        @keyframes wrong {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .color-box {
+            width: 150px;
+            height: 150px;
+            margin: 20px;
+            display: inline-block;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .color-box:hover {
+            transform: scale(1.1);
+        }
+
+        .math-input {
+            font-size: 2em;
+            padding: 15px;
+            width: 150px;
+            text-align: center;
+            border: 3px solid #764ba2;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+
+        .final-message {
+            animation: heartbeat 1.5s infinite;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .hearts {
+            font-size: 3em;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.5s;
+        }
+
+        .frustration-meter {
+            font-size: 1.5em;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="gameContainer">
+        <h1>💖 Mystery Love Quest 💖</h1>
+        <div class="level-indicator" id="levelIndicator">Challenge 1 of 5</div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        <div class="instruction" id="instruction">Welcome! Are you ready for some challenges? 😈</div>
+        <div class="game-area" id="gameArea">
+            <button onclick="startGame()">Let's Go! 💝</button>
+        </div>
+    </div>
+
+    <script>
+        let currentLevel = 0;
+        let gameState = {
+            level: 0,
+            score: 0,
+            attempts: 0
+        };
+
+        // Game variables
+        let correctSequence = [];
+        let userSequence = [];
+        let correctColor = '';
+        let mathAnswer = 0;
+
+        function startGame() {
+            currentLevel = 1;
+            updateProgress();
+            level1();
+        }
+
+        function updateProgress() {
+            document.getElementById('levelIndicator').textContent = `Challenge ${currentLevel} of 5`;
+            document.getElementById('progressFill').style.width = (currentLevel / 5 * 100) + '%';
+            gameState.level = currentLevel;
+            gameState.attempts++;
+        }
+
+        // Level 1: Memory Game
+        function level1() {
+            document.getElementById('instruction').innerHTML = 
+                '🧠 <strong>Memory Challenge!</strong><br>Watch the sequence carefully and repeat it!';
+            
+            correctSequence = ['🌟', '❤️', '🌈'];
+            
+            let html = '<div style="font-size: 3em; margin: 40px 0;">🌟 ❤️ 🌈</div>';
+            html += '<p style="font-size: 1.1em; color: #666;">Memorizing... 3 seconds!</p>';
+            document.getElementById('gameArea').innerHTML = html;
+
+            setTimeout(() => {
+                document.getElementById('gameArea').innerHTML = 
+                    '<div><p style="margin-bottom: 20px;">Now click them in the correct order!</p>' +
+                    '<div class="word-box" onclick="checkSequence(\'🌈\')">🌈</div>' +
+                    '<div class="word-box" onclick="checkSequence(\'🌟\')">🌟</div>' +
+                    '<div class="word-box" onclick="checkSequence(\'❤️\')">❤️</div></div>';
+                userSequence = [];
+            }, 3000);
+        }
+
+        function checkSequence(emoji) {
+            userSequence.push(emoji);
+            createEmojiRain(emoji);
+            
+            if (userSequence.length === correctSequence.length) {
+                if (JSON.stringify(userSequence) === JSON.stringify(correctSequence)) {
+                    setTimeout(() => {
+                        currentLevel++;
+                        updateProgress();
+                        level2();
+                    }, 500);
+                } else {
+                    document.getElementById('instruction').innerHTML = 
+                        '❌ Oops! Try again! The sequence was 🌟 ❤️ 🌈';
+                    setTimeout(level1, 2000);
+                }
+            }
+        }
+
+        // Level 2: Color Confusion
+        function level2() {
+            document.getElementById('instruction').innerHTML = 
+                '🎨 <strong>Color Confusion!</strong><br>Click the color that matches the WORD, not the color of the text! 😵';
+            
+            const colors = [
+                { word: 'RED', textColor: 'blue', bgColor: '#ff4444' },
+                { word: 'BLUE', textColor: 'green', bgColor: '#4444ff' },
+                { word: 'GREEN', textColor: 'red', bgColor: '#44ff44' }
+            ];
+            
+            correctColor = '#44ff44'; // GREEN
+            
+            let html = '<div style="font-size: 2em; margin: 20px 0;">';
+            html += '<span style="color: green;">RED</span> ';
+            html += '<span style="color: red;">BLUE</span> ';
+            html += '<span style="color: blue;">GREEN</span></div>';
+            html += '<p style="margin: 20px 0;">Which color is the word "GREEN"?</p>';
+            
+            colors.forEach(color => {
+                html += `<div class="color-box" style="background: ${color.bgColor};" onclick="checkColor('${color.bgColor}')"></div>`;
+            });
+            
+            document.getElementById('gameArea').innerHTML = html;
+        }
+
+        function checkColor(color) {
+            if (color === correctColor) {
+                createEmojiRain('✅');
+                setTimeout(() => {
+                    currentLevel++;
+                    updateProgress();
+                    level3();
+                }, 500);
+            } else {
+                document.getElementById('instruction').innerHTML = 
+                    '❌ Nope! Read carefully - the WORD says GREEN! 😏';
+                setTimeout(level2, 2000);
+            }
+        }
+
+        // Level 3: Annoying Math
+        function level3() {
+            const num1 = Math.floor(Math.random() * 10) + 5;
+            const num2 = Math.floor(Math.random() * 10) + 5;
+            const num3 = Math.floor(Math.random() * 5) + 2;
+            mathAnswer = num1 + num2 - num3;
+            
+            document.getElementById('instruction').innerHTML = 
+                '🧮 <strong>Quick Math!</strong><br>Calculate: ' + num1 + ' + ' + num2 + ' - ' + num3 + ' = ?';
+            
+            let html = '<input type="number" class="math-input" id="mathInput" placeholder="?">';
+            html += '<br><button onclick="checkMath()">Submit Answer 📝</button>';
+            html += '<p style="margin-top: 20px; color: #666;">Take your time... or not! 😅</p>';
+            
+            document.getElementById('gameArea').innerHTML = html;
+        }
+
+        function checkMath() {
+            const userAnswer = parseInt(document.getElementById('mathInput').value);
+            if (userAnswer === mathAnswer) {
+                createEmojiRain('🎉');
+                setTimeout(() => {
+                    currentLevel++;
+                    updateProgress();
+                    level4();
+                }, 500);
+            } else {
+                document.getElementById('instruction').innerHTML = 
+                    '❌ Wrong! Try again! (Hint: The answer is ' + mathAnswer + ')';
+                setTimeout(level3, 2000);
+            }
+        }
+
+        // Level 4: Don't Click!
+        function level4() {
+            let countdown = 8;
+            document.getElementById('instruction').innerHTML = 
+                '⏰ <strong>Ultimate Patience Test!</strong><br>DO NOT click anything for 8 seconds! Just wait! 😤';
+            
+            let html = '<div style="font-size: 4em; margin: 40px 0;" id="countdown">8</div>';
+            html += '<button onclick="failLevel4()" style="background: #ff4444;">Click Me! I Dare You! 😈</button>';
+            
+            document.getElementById('gameArea').innerHTML = html;
+            
+            const timer = setInterval(() => {
+                countdown--;
+                const countdownEl = document.getElementById('countdown');
+                if (countdownEl) {
+                    countdownEl.textContent = countdown;
+                }
+                
+                if (countdown === 0) {
+                    clearInterval(timer);
+                    currentLevel++;
+                    updateProgress();
+                    level5();
+                }
+            }, 1000);
+        }
+
+        function failLevel4() {
+            document.getElementById('instruction').innerHTML = 
+                '❌ I said DON\'T CLICK! 😂 Starting over...';
+            setTimeout(level4, 2000);
+        }
+
+        // Level 5: Final Riddle
+        function level5() {
+            document.getElementById('instruction').innerHTML = 
+                '🤔 <strong>Final Riddle!</strong><br>What is always in front of you but can\'t be seen?';
+            
+            let html = '<div>';
+            html += '<div class="word-box" onclick="checkRiddle(\'past\')">The Past</div>';
+            html += '<div class="word-box" onclick="checkRiddle(\'future\')">The Future</div>';
+            html += '<div class="word-box" onclick="checkRiddle(\'air\')">Air</div>';
+            html += '</div>';
+            html += '<p style="margin-top: 20px; color: #666;">Think carefully... 🤔</p>';
+            
+            document.getElementById('gameArea').innerHTML = html;
+        }
+
+        function checkRiddle(answer) {
+            if (answer === 'future') {
+                createEmojiRain('🎊');
+                setTimeout(showFinalMessage, 500);
+            } else {
+                document.getElementById('instruction').innerHTML = 
+                    '❌ Not quite! Think about it... what\'s ahead of you? 😊';
+            }
+        }
+
+        function showFinalMessage() {
+            document.getElementById('gameContainer').innerHTML = `
+                <div class="final-message">
+                    <div class="hearts">💕 💖 💕</div>
+                    <h1 style="font-size: 3em; margin: 30px 0;">I Love You Pinky!</h1>
+                    <p style="font-size: 1.5em; color: #764ba2; margin: 20px 0;">
+                        You made it through all my silly challenges! 🎉
+                    </p>
+                    <p style="font-size: 1.2em; color: #666; margin: 20px 0;">
+                        Your patience is amazing, and I love you so much! 💗
+                    </p>
+                    <p style="font-size: 1em; color: #999; margin-top: 40px;">
+                        You completed ${gameState.attempts} attempts with lots of love! ❤️
+                    </p>
+                    <div style="font-size: 4em; margin-top: 30px;">🌹💝🌹</div>
+                </div>
+            `;
+            
+            // Create celebration
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => createEmojiRain(['❤️', '💕', '💖', '🌹', '✨'][Math.floor(Math.random() * 5)]), i * 200);
+            }
+        }
+
+        function createEmojiRain(emoji) {
+            const rain = document.createElement('div');
+            rain.className = 'emoji-rain';
+            rain.textContent = emoji;
+            rain.style.left = Math.random() * 100 + '%';
+            rain.style.top = '-50px';
+            document.body.appendChild(rain);
+            setTimeout(() => rain.remove(), 3000);
+        }
+    </script>
+</body>
+  </html>
